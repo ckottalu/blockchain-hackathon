@@ -20,6 +20,8 @@ type SimpleChaincode struct {
 }
 
 var projectsIndexStr = "GE::ABCConsulting"
+var projectMilestonesStr = "::milestones"
+var projectUsersStr = "::users"
 
 //Data elements
 
@@ -33,21 +35,11 @@ type TimeEntry struct {
 	TotalAmount     string `json:"totalamount"`
 }
 
-// stored as P1::User1
-type AllProjectTimeEntry struct {
-	ProjectTimeEntry []TimeEntry `json:"project_timeentry"`
-}
-
 type ProjectMilestone struct {
 	ProjectName   string `json:"projectname"`
 	MilestoneName string `json:"milestonename"`
 	User          string `json:"user"`
 	Amount        string `json:"amount"`
-}
-
-// list of project milestones , as  example P1 --> M1 1000
-type AllProjectMilestones struct {
-	ProjectMileStones []ProjectMilestone `json:"project_milestones"`
 }
 
 type UserRate struct {
@@ -168,7 +160,7 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 
 	jsonAsBytes, _ = json.Marshal(projectUserRates)
 	//initialize user rates for Proj1
-	err = stub.PutState("Proj1", jsonAsBytes)
+	err = stub.PutState(consultingProjects[0], jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +182,13 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 
 	jsonAsBytes, _ = json.Marshal(projectUserRates)
 	//initialize user rates for Proj2
-	err = stub.PutState("Proj2", jsonAsBytes)
+	err = stub.PutState(consultingProjects[1], jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
 
 //initialize user rates for Proj3
-	err = stub.PutState("Proj3", jsonAsBytes)
+	err = stub.PutState(consultingProjects[2], jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +207,7 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 	}
 
 	//input sanitation
-	fmt.Println("- start init acount")
+	fmt.Println("- start EnterResourceTime")
 	if len(args[0]) <= 0 {
 		return nil, errors.New("1st argument ProjectName must be a non-empty string")
 	}
@@ -237,12 +229,12 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
  timeEntry.TotalAmount = "0"
 // derive amount
 
-	projectUsersAsBytes, err := stub.GetState(args[0])
+	projectUserRatesAsBytes, err := stub.GetState(args[0])
 	if err != nil {
 		return nil, errors.New("Failed to get project user rates")
 	}
 	projectUserRates := []UserRate{}
-	json.Unmarshal(projectUsersAsBytes, &projectUserRates)
+	json.Unmarshal(projectUserRatesAsBytes, &projectUserRates)
 
 	for i := range projectUserRates{
 		if strings.ToLower(projectUserRates[i].User) == strings.ToLower(args[2]) {
@@ -253,7 +245,7 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 	}
 
 //get time entires for user and project
-projectUserTimeEntryAsBytes, err := stub.GetState(args[0]+":::"+args[2])
+projectUserTimeEntryAsBytes, err := stub.GetState(args[0]+"::"+args[2])
 if err != nil {
 	return nil, errors.New("Failed to get project user time entry")
 }
@@ -266,15 +258,89 @@ allProjectTimeEntries = append(allProjectTimeEntries, timeEntry)
 
 //put back all time entries
 jsonAsBytes, _ := json.Marshal(allProjectTimeEntries)
-err = stub.PutState(args[0]+":::"+args[2], jsonAsBytes)
+err = stub.PutState(args[0]+"::"+args[2], jsonAsBytes)
 if err != nil {
 	return nil, err
+}
+//put project and unique users
+
+projectUsersAsBytes, err := stub.GetState(args[0]+projectUsersStr)
+if err != nil {
+	return nil, errors.New("Failed to get project user time entry")
+}
+
+var projectActiveUsers []string
+json.Unmarshal(projectUsersAsBytes, &projectActiveUsers)
+
+//check if user already exits ..if exits then nothing else add to the list
+var userExists bool = false
+
+for i := range projectActiveUsers {
+  if strings.ToLower(projectActiveUsers[i]) == strings.ToLower(args[2]) {
+  	userExists = true
+  }
+}
+
+if !userExists {
+	projectActiveUsers = append(projectActiveUsers, args[2])
+
+	jsonAsBytes, _ = json.Marshal(projectActiveUsers)
+	err = stub.PutState(args[0]+projectUsersStr, jsonAsBytes)
+	if err != nil {
+		return nil, err
+	}
 }
 
 	return nil,nil
 }
 
 func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//       0              1         2        3
+	// "ProjectName", "MilestoneName", "User", "Amount"
+
+	if len(args) != 4 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 4")
+	}
+
+	//input sanitation
+	fmt.Println("- start CompleteProjectMilestone")
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument ProjectName must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument MilestoneName must be a non-empty string")
+	}
+	if len(args[2]) <= 0 {
+		return nil, errors.New("3rd argument User must be a non-empty string")
+	}
+	if len(args[3]) <= 0 {
+		return nil, errors.New("4th argument Amount must be a non-empty string")
+	}
+
+	projectMilestone := ProjectMilestone{}
+  projectMilestone.ProjectName = args[0]
+  projectMilestone.MilestoneName = args[1]
+  projectMilestone.User = args[2]
+  projectMilestone.Amount = args[3]
+
+	//get time entires for user and project
+	projectMilestonesAsBytes, err := stub.GetState(args[0]+projectMilestonesStr)
+	if err != nil {
+		return nil, errors.New("Failed to get project Milestones")
+	}
+
+	allProjectMilestones := []ProjectMilestone{}
+	json.Unmarshal(projectMilestonesAsBytes, &allProjectMilestones)
+
+	//add current time entry to exisitng
+	allProjectMilestones = append(allProjectMilestones, projectMilestone)
+
+	//put back all time entries
+	jsonAsBytes, _ := json.Marshal(allProjectMilestones)
+	err = stub.PutState(args[0]+projectMilestonesStr, jsonAsBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return nil,nil
 }
