@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"strconv"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -41,6 +42,7 @@ type ProjectMilestone struct {
 	MilestoneName string `json:"milestonename"`
 	PersonName    string `json:"personname"`
 	Amount        string `json:"amount"`
+	DateActual    string `json:dateactual`
 }
 
 type UserRate struct {
@@ -85,9 +87,9 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	// Handle different functions
 	if function == "init" { //initialize the chaincode state, used as reset
 		return t.Init(stub, "init", args)
-	}else if function == "resourcetimeentry" {
+	}else if function == "resource_time_entry" {
 		return t.EnterResourceTime(stub,args)
-	}else if function == "completeprojectmilestone" {
+	}else if function == "complete_project_milestone" {
 		return t.CompleteProjectMilestone(stub,args)
 	}
 
@@ -327,6 +329,7 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
   projectMilestone.MilestoneName = args[1]
   projectMilestone.PersonName = args[2]
   projectMilestone.Amount = args[3]
+	projectMilestone.DateActual = time.Now().Format(time.RFC1123)
 
 	//get time entires for user and project
 	projectMilestonesAsBytes, err := stub.GetState(args[0]+projectMilestonesStr)
