@@ -93,6 +93,10 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.EnterResourceTime(stub,args)
 	}else if function == "complete_project_milestone" {
 		return t.CompleteProjectMilestone(stub,args)
+	}else if function == "write" {
+		return t.Write(stub,args)
+	}else if function == "pay_amount" {
+		return t.PayAmount(stub,args)
 	}
 
 	fmt.Println("invoke did not find func: " + function) //error
@@ -110,6 +114,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return nil, nil
 	} else if function == "read" {
 		return t.read(stub, args)
+	} else if function == "get_pending_amount" {
+		return t.GetPendingAmount(stub, args)
 	}
 
 	fmt.Println("query did not find func: " + function) //error
@@ -353,4 +359,76 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 	}
 
 	return nil,nil
+}
+
+func (t *SimpleChaincode) GetPendingAmount(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//       0        1
+	// "GE", "ABCConsulting"
+
+
+	return nil,nil
+}
+
+
+func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	var err error
+	fmt.Println("running write()")
+
+	if len(args) != 2 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the key and value to set")
+	}
+
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument key must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument value must be a non-empty string")
+	}
+
+	err = stub.PutState(args[0], []byte(args[1]))  //write the variable into the chaincode state
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	//     0           1         2
+	// "GE", "ABCConsulting", "1000"
+
+	var err error
+	fmt.Println("running write()")
+
+	if len(args) < 3 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+	}
+
+	if len(args[0]) <= 0 {
+		return nil, errors.New("1st argument Organization must be a non-empty string")
+	}
+	if len(args[1]) <= 0 {
+		return nil, errors.New("2nd argument Consulting Organization must be a non-empty string")
+	}
+	if len(args[2]) <= 0 {
+		return nil, errors.New("3rd argument amount must be a non-empty string")
+	}
+
+	accountAsBytes, err := stub.GetState(args[1])
+	if err != nil {
+		return nil, errors.New("Failed to get the first account")
+	}
+
+	Aval, err := strconv.Atoi(string(accountAsBytes))
+	newAval, err := strconv.Atoi(args[2])
+
+	Aval += newAval
+
+	err = stub.PutState(args[1], []byte(strconv.Itoa(Aval)))  //write the variable into the chaincode state
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
