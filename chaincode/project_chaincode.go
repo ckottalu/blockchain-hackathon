@@ -20,10 +20,12 @@ import (
 type SimpleChaincode struct {
 }
 
-var projectsIndexStr = "GE::ABCConsulting"
-var projectMilestonesStr = "::milestones"
-var projectUsersStr = "::users::ABCConsulting"
-
+//can be derived from DB in real application
+var organizationStr = "GE"
+var consultingOrgStr = "ABCConsulting"
+var projectMilestonesStr = "::milestones::" +consultingOrgStr
+var projectUsersStr = "::users::"+consultingOrgStr
+var timeFormat = "02-Jan-2006"
 //Data elements
 
 // user entered time entry
@@ -141,7 +143,7 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 	consultingProjects := []string{"Proj1", "Proj2", "Proj3"}
 
 	jsonAsBytes, _ := json.Marshal(consultingProjects)
-	err := stub.PutState(projectsIndexStr, jsonAsBytes)
+	err := stub.PutState(organizationStr+"::"+consultingOrgStr, jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +331,7 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
   projectMilestone.MilestoneName = args[1]
   projectMilestone.PersonName = args[2]
   projectMilestone.Amount = args[3]
-	projectMilestone.DateActual = time.Now().Format(time.RFC1123)
+	projectMilestone.DateActual = time.Now().Format(timeFormat)
 
 	//get time entires for user and project
 	projectMilestonesAsBytes, err := stub.GetState(args[0]+projectMilestonesStr)
