@@ -21,7 +21,7 @@ type SimpleChaincode struct {
 
 var projectsIndexStr = "GE::ABCConsulting"
 var projectMilestonesStr = "::milestones"
-var projectUsersStr = "::users"
+var projectUsersStr = "::users::ABCConsulting"
 
 //Data elements
 
@@ -30,15 +30,16 @@ var projectUsersStr = "::users"
 type TimeEntry struct {
 	ProjectName     string `json:"projectname"`
 	TaskName        string `json:"taskname"`
-	User            string `json:"user"`
+	PersonName      string `json:"personname"`
 	QuantityInHours string `json:"quantityhours"`
-	TotalAmount     string `json:"totalamount"`
+	ExpenseType	    string `json:"expensetype"`
+	DerivedAmount   string `json:"totalamount"`
 }
 
 type ProjectMilestone struct {
 	ProjectName   string `json:"projectname"`
 	MilestoneName string `json:"milestonename"`
-	User          string `json:"user"`
+	PersonName    string `json:"personname"`
 	Amount        string `json:"amount"`
 }
 
@@ -197,12 +198,12 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 }
 
 func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	//       0              1         2        3
-	// "ProjectName", "TaskName", "User", "QuantityInHours"
+	//       0              1         2           3                  4
+	// "ProjectName", "TaskName", "PersonName", "QuantityInHours","ExpenseType"
 	var rate int
   var hours int
 
-	if len(args) != 4 {
+	if len(args) != 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
@@ -215,18 +216,22 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 		return nil, errors.New("2nd argument TaskName must be a non-empty string")
 	}
 	if len(args[2]) <= 0 {
-		return nil, errors.New("3rd argument User must be a non-empty string")
+		return nil, errors.New("3rd argument PersonName must be a non-empty string")
 	}
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument QuantityInHours must be a non-empty string")
+	}
+	if len(args[4]) <= 0 {
+		return nil, errors.New("5th argument ExpenseType must be a non-empty string")
 	}
 
  timeEntry := TimeEntry{}
  timeEntry.ProjectName = args[0]
  timeEntry.TaskName = args[1]
- timeEntry.User = args[2]
+ timeEntry.PersonName = args[2]
  timeEntry.QuantityInHours = args[3]
- timeEntry.TotalAmount = "0"
+ timeEntry.DerivedAmount = "0"
+ timeEntry.ExpenseType = args[4]
 // derive amount
 
 	projectUserRatesAsBytes, err := stub.GetState(args[0])
@@ -240,7 +245,7 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 		if strings.ToLower(projectUserRates[i].User) == strings.ToLower(args[2]) {
 			hours,_ = strconv.Atoi(args[3])
 			rate,_ = strconv.Atoi(projectUserRates[i].Rate)
-       timeEntry.TotalAmount = strconv.Itoa(hours * rate )
+       timeEntry.DerivedAmount = strconv.Itoa(hours * rate )
 		}
 	}
 
@@ -295,8 +300,8 @@ if !userExists {
 }
 
 func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	//       0              1         2        3
-	// "ProjectName", "MilestoneName", "User", "Amount"
+	//       0              1                  2        3
+	// "ProjectName", "MilestoneName", "PersonName", "Amount"
 
 	if len(args) != 4 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
@@ -311,7 +316,7 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 		return nil, errors.New("2nd argument MilestoneName must be a non-empty string")
 	}
 	if len(args[2]) <= 0 {
-		return nil, errors.New("3rd argument User must be a non-empty string")
+		return nil, errors.New("3rd argument PersonName must be a non-empty string")
 	}
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument Amount must be a non-empty string")
@@ -320,7 +325,7 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 	projectMilestone := ProjectMilestone{}
   projectMilestone.ProjectName = args[0]
   projectMilestone.MilestoneName = args[1]
-  projectMilestone.User = args[2]
+  projectMilestone.PersonName = args[2]
   projectMilestone.Amount = args[3]
 
 	//get time entires for user and project
