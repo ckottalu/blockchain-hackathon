@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"strconv"	
+	"strconv"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -65,7 +65,7 @@ type ProjectResult struct {
 	Date string `json:"date"`
 	DerivedAmount   string `json:"derivedamount"`
 	ProjectName   string `json:"projectname"`
-	TaskName   string `json:"projectname"`
+	TaskName   string `json:"taskname"`
 }
 
 // ============================================================================================================================
