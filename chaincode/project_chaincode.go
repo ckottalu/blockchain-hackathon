@@ -382,9 +382,9 @@ func (t *SimpleChaincode) GetOrgOverview(stub shim.ChaincodeStubInterface, args 
 	// "GE", "ABCConsulting"
 
 var completedworkamount int64
-//var pendingcontractamount int64
-//var amountpaid int64
-//var balancetobepaid int64
+var pendingcontractamount int64
+var amountpaid int64
+var balancetobepaid int64
 
 orgResult := OrgResult{}
 projectResults := []ProjectResult{}
@@ -427,7 +427,7 @@ for x := range timeEntries {
 	 Aval, _ := strconv.ParseInt(timeEntries[x].DerivedAmount,10,32)
 	completedworkamount += Aval
 
-	projectResult.Name = timeEntries[x].PersonName + " Worked " + timeEntries[x].QuantityInHours
+	projectResult.Name = timeEntries[x].PersonName +" " + timeEntries[x].QuantityInHours + " Hours Worked "
 	projectResult.Date = timeEntries[x].EntryDate
 	projectResult.DerivedAmount = timeEntries[x].DerivedAmount
   projectResults = append(projectResults,projectResult)
@@ -449,7 +449,7 @@ for y := range projectMilestones {
 	Aval, _ := strconv.ParseInt(projectMilestones[y].Amount,10,32)
   completedworkamount += Aval
 
-	projectResult.Name = projectMilestones[y].MilestoneName + " Completed "
+	projectResult.Name ="Milestone " + projectMilestones[y].MilestoneName + " Completed "
 	projectResult.Date = projectMilestones[y].DateActual
 	projectResult.DerivedAmount = projectMilestones[y].Amount
   projectResults = append(projectResults,projectResult)
@@ -460,10 +460,27 @@ for y := range projectMilestones {
 
 //do calculations comvert int to string ,return result
 orgResult.ProjectResults = projectResults
-orgResult.CompletedWorkAmount ="0"
-orgResult.PendingContractAmount ="0"
-orgResult.AmountPaid = "0"
-orgResult.BalanceTobePaid="0"
+orgResult.CompletedWorkAmount = strconv.FormatInt(completedworkamount, 10)
+
+initialAmountAsBytes, err := stub.GetState(consultingOrgStr)
+if err != nil {
+	return nil, err
+}
+initialAmount,_ := strconv.ParseInt(string(initialAmountAsBytes),10,32)
+
+amountPaidAsBytes, err := stub.GetState(consultingOrgStr+"::amount_paid")
+if err != nil {
+	return nil, err
+}
+amountpaid,_ = strconv.ParseInt(string(amountPaidAsBytes),10,32)
+
+pendingcontractamount = initialAmount - completedworkamount
+
+orgResult.PendingContractAmount =strconv.FormatInt(pendingcontractamount, 10)
+orgResult.AmountPaid = string(amountPaidAsBytes)
+
+balancetobepaid = completedworkamount - amountpaid
+orgResult.BalanceTobePaid=strconv.FormatInt(balancetobepaid, 10)
 
 	return json.Marshal(orgResult)
 }
