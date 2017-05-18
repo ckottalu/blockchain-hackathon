@@ -65,6 +65,8 @@ type ProjectResult struct {
 	Name string `json:"name"`
 	Date string `json:"date"`
 	DerivedAmount   string `json:"derivedamount"`
+	ProjectName   string `json:"projectname"`
+	TaskName   string `json:"projectname"`
 }
 
 // ============================================================================================================================
@@ -223,12 +225,12 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 }
 
 func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	//       0              1         2           3                  4
-	// "ProjectName", "TaskName", "PersonName", "QuantityInHours","ExpenseType"
+	//       0              1         2           3                  4            5
+	// "ProjectName", "TaskName", "PersonName", "QuantityInHours","ExpenseType","EntryDate"
 	var rate int
   var hours int
 
-	if len(args) != 5 {
+	if len(args) != 6 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
@@ -249,6 +251,9 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 	if len(args[4]) <= 0 {
 		return nil, errors.New("5th argument ExpenseType must be a non-empty string")
 	}
+	if len(args[5]) <= 0 {
+		return nil, errors.New("5th argument EntryDate must be a non-empty string")
+	}
 
  timeEntry := TimeEntry{}
  timeEntry.ProjectName = args[0]
@@ -257,7 +262,8 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
  timeEntry.QuantityInHours = args[3]
  timeEntry.DerivedAmount = "0"
  timeEntry.ExpenseType = args[4]
- timeEntry.EntryDate = time.Now().Format(timeFormat)
+ //timeEntry.EntryDate = time.Now().Format(timeFormat)
+ timeEntry.EntryDate = args[5]
 // derive amount
 
 	projectUserRatesAsBytes, err := stub.GetState(args[0])
@@ -326,10 +332,10 @@ if !userExists {
 }
 
 func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	//       0              1                  2        3
-	// "ProjectName", "MilestoneName", "PersonName", "Amount"
+	//       0              1                  2        3         4
+	// "ProjectName", "MilestoneName", "PersonName", "Amount" , "Date"
 
-	if len(args) != 4 {
+	if len(args) != 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
@@ -347,13 +353,17 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument Amount must be a non-empty string")
 	}
+	if len(args[4]) <= 0 {
+		return nil, errors.New("4th argument Date must be a non-empty string")
+	}
 
 	projectMilestone := ProjectMilestone{}
   projectMilestone.ProjectName = args[0]
   projectMilestone.MilestoneName = args[1]
   projectMilestone.PersonName = args[2]
   projectMilestone.Amount = args[3]
-	projectMilestone.DateActual = time.Now().Format(timeFormat)
+	//projectMilestone.DateActual = time.Now().Format(timeFormat)
+	projectMilestone.DateActual = args[4]
 
 	//get time entires for user and project
 	projectMilestonesAsBytes, err := stub.GetState(args[0]+projectMilestonesStr)
@@ -430,6 +440,8 @@ for x := range timeEntries {
 	projectResult.Name = timeEntries[x].PersonName +" " + timeEntries[x].QuantityInHours + " Hours Worked "
 	projectResult.Date = timeEntries[x].EntryDate
 	projectResult.DerivedAmount = timeEntries[x].DerivedAmount
+	projectResult.ProjectName = projects[i]
+	projectResult.TaskName = timeEntries[x].TaskName
   projectResults = append(projectResults,projectResult)
 }//time entires
 
@@ -452,6 +464,8 @@ for y := range projectMilestones {
 	projectResult.Name ="Milestone " + projectMilestones[y].MilestoneName + " Completed "
 	projectResult.Date = projectMilestones[y].DateActual
 	projectResult.DerivedAmount = projectMilestones[y].Amount
+	projectResult.ProjectName = projects[i]
+	projectResult.TaskName = ""
   projectResults = append(projectResults,projectResult)
 }//time entires
 
