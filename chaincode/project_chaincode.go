@@ -25,6 +25,7 @@ var consultingOrgStr = "ABCConsulting"
 var projectMilestonesStr = "::milestones::" +consultingOrgStr
 var projectUsersStr = "::users::"+consultingOrgStr
 var timeFormat = "02-Jan-2006"
+var initialAmount = "500000"
 //Data elements
 
 // user entered time entry
@@ -219,6 +220,18 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 	if err != nil {
 		return nil, err
 	}
+
+//initialize initial contract amount
+
+err = stub.PutState(consultingOrgStr, []byte(initialAmount))
+if err != nil {
+	return nil, err
+}
+
+err = stub.PutState(consultingOrgStr+"::amount_paid", []byte("0"))
+if err != nil {
+	return nil, err
+}
 
 	return nil, nil
 }
