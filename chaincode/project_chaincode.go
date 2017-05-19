@@ -171,7 +171,7 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 
 func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//Initilizing the sample projects (can be dynamically derived from DB in realtime)
-	consultingProjects := []string{"Wonders of Galactica", "Making of Big Labowski Project", "Mission to Pluto"}
+	consultingProjects := []string{"Wonders of Galactica Project", "Making of Big Labowski Project", "Mission to Pluto"}
 
 	jsonAsBytes, _ := json.Marshal(consultingProjects)
 	err := stub.PutState(organizationStr+"::"+consultingOrgStr, jsonAsBytes)
