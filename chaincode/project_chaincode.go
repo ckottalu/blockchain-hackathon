@@ -74,6 +74,7 @@ type ProjectResult struct {
 type AmountTransfer struct {
 	AmountPaid string `json:"amountpaid"`
 	Date       string `json:"date"`
+	ProjectName   string `json:"projectname"`
 }
 
 // ============================================================================================================================
@@ -558,13 +559,13 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 
 func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	//     0           1         2       3
-	// "GE", "ABCConsulting", "1000" , "Date"
+	//     0           1         2       3         4
+	// "GE", "ABCConsulting", "1000" , "Date","Project Name"
 
 	var err error
 	fmt.Println("running PayAmount()")
 
-	if len(args) < 4 {
+	if len(args) < 5 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
@@ -579,6 +580,9 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 	}
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument Date must be a non-empty string")
+	}
+	if len(args[4]) <= 0 {
+		return nil, errors.New("4th argument Project Name must be a non-empty string")
 	}
 
 	accountAsBytes, err := stub.GetState(args[1] + "::amount_paid")
@@ -608,6 +612,7 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 	amountpaid := AmountTransfer{}
 	amountpaid.AmountPaid = args[2]
 	amountpaid.Date = args[3]
+	amountpaid.ProjectName = args[4]
 	amountPaidLog = append(amountPaidLog, amountpaid)
 
 	jsonAsBytes, _ := json.Marshal(amountPaidLog)
