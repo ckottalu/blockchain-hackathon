@@ -455,7 +455,7 @@ fmt.Println("- start GetOrgOverview")
 				Aval, _ := strconv.ParseInt(timeEntries[x].DerivedAmount, 10, 32)
 				completedworkamount += Aval
 
-				projectResult.Name = timeEntries[x].PersonName + " " + timeEntries[x].QuantityInHours + " Hours Worked "
+				projectResult.Name = timeEntries[x].PersonName + " reported " + timeEntries[x].QuantityInHours + " Hours "
 				projectResult.Date = timeEntries[x].EntryDate
 				projectResult.DerivedAmount = timeEntries[x].DerivedAmount
 				projectResult.ProjectName = projects[i]
