@@ -20,12 +20,12 @@ type SimpleChaincode struct {
 }
 
 //can be derived from DB in real application
-var organizationStr = "GE"
-var consultingOrgStr = "ABCConsulting"
+var organizationStr = "Blockbuster Studios"
+var consultingOrgStr = "Primetime Editing Services"
 var projectMilestonesStr = "::milestones::" + consultingOrgStr
 var projectUsersStr = "::users::" + consultingOrgStr
 var timeFormat = "02-Jan-2006"
-var initialAmount = "500000"
+var initialAmount = "200000"
 
 //Data elements
 
@@ -171,7 +171,7 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 
 func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//Initilizing the sample projects (can be dynamically derived from DB in realtime)
-	consultingProjects := []string{"Proj1", "Proj2", "Proj3"}
+	consultingProjects := []string{"Wonders of Galactica", "Making of Big Labowski Project", "Mission to Pluto"}
 
 	jsonAsBytes, _ := json.Marshal(consultingProjects)
 	err := stub.PutState(organizationStr+"::"+consultingOrgStr, jsonAsBytes)
@@ -182,16 +182,14 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 	//Initilizing the Project user rates (can be dynamically derived from DB in realtime) p1 -->[ {u1 100}, {u2 200 }]
 	var projectUserRates []UserRate
 	userrate := UserRate{}
-	userrate.User = "Chandra"
-	userrate.Rate = "110"
+	userrate.User = "Connor Horton"
+	userrate.Rate = "200"
 	projectUserRates = append(projectUserRates, userrate)
 
-	userrate.User = "Sudheer"
-	userrate.Rate = "100"
+	userrate.User = "Lisa James"
+	userrate.Rate = "200"
 	projectUserRates = append(projectUserRates, userrate)
 
-	userrate.User = "Sanjay"
-	userrate.Rate = "80"
 	projectUserRates = append(projectUserRates, userrate)
 
 	jsonAsBytes, _ = json.Marshal(projectUserRates)
@@ -204,16 +202,14 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 	//Initilizing the Project user rates p1 -->[ {u1 100}, {u2 200 }]
 	projectUserRates = []UserRate{}
 	userrate = UserRate{}
-	userrate.User = "Chandra"
-	userrate.Rate = "105"
+	userrate.User = "Connor Horton"
+	userrate.Rate = "200"
 	projectUserRates = append(projectUserRates, userrate)
 
-	userrate.User = "Sudheer"
-	userrate.Rate = "110"
+	userrate.User = "Lisa James"
+	userrate.Rate = "200"
 	projectUserRates = append(projectUserRates, userrate)
 
-	userrate.User = "Sanjay"
-	userrate.Rate = "75"
 	projectUserRates = append(projectUserRates, userrate)
 
 	jsonAsBytes, _ = json.Marshal(projectUserRates)
