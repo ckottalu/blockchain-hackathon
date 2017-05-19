@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -22,10 +22,11 @@ type SimpleChaincode struct {
 //can be derived from DB in real application
 var organizationStr = "GE"
 var consultingOrgStr = "ABCConsulting"
-var projectMilestonesStr = "::milestones::" +consultingOrgStr
-var projectUsersStr = "::users::"+consultingOrgStr
+var projectMilestonesStr = "::milestones::" + consultingOrgStr
+var projectUsersStr = "::users::" + consultingOrgStr
 var timeFormat = "02-Jan-2006"
 var initialAmount = "500000"
+
 //Data elements
 
 // user entered time entry
@@ -35,9 +36,9 @@ type TimeEntry struct {
 	TaskName        string `json:"taskname"`
 	PersonName      string `json:"personname"`
 	QuantityInHours string `json:"quantityhours"`
-	ExpenseType	    string `json:"expensetype"`
+	ExpenseType     string `json:"expensetype"`
 	DerivedAmount   string `json:"derivedamount"`
-	EntryDate        string `json:entrydate`
+	EntryDate       string `json:entrydate`
 }
 
 type ProjectMilestone struct {
@@ -54,19 +55,25 @@ type UserRate struct {
 }
 
 type OrgResult struct {
-	CompletedWorkAmount string `json:"completedworkamount"`
-	PendingContractAmount string `json:"pendingcontractamount"`
-	AmountPaid string `json:"amountpaid"`
-	BalanceTobePaid string `json:"balancetobepaid"`
-	ProjectResults []ProjectResult `json:"projectresults"`
+	CompletedWorkAmount   string          `json:"completedworkamount"`
+	PendingContractAmount string          `json:"pendingcontractamount"`
+	AmountPaid            string          `json:"amountpaid"`
+	BalanceTobePaid       string          `json:"balancetobepaid"`
+	ProjectResults        []ProjectResult `json:"projectresults"`
+	AmountPaidLog         []AmountTransfer `json:"amounttransactions"`
 }
 
 type ProjectResult struct {
-	Name string `json:"name"`
-	Date string `json:"date"`
-	DerivedAmount   string `json:"derivedamount"`
+	Name          string `json:"name"`
+	Date          string `json:"date"`
+	DerivedAmount string `json:"derivedamount"`
 	ProjectName   string `json:"projectname"`
-	TaskName   string `json:"taskname"`
+	TaskName      string `json:"taskname"`
+}
+
+type AmountTransfer struct {
+	AmountPaid          string `json:"amountpaid"`
+	Date                string `json:"date"`
 }
 
 // ============================================================================================================================
@@ -106,14 +113,14 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	// Handle different functions
 	if function == "init" { //initialize the chaincode state, used as reset
 		return t.Init(stub, "init", args)
-	}else if function == "resource_time_entry" {
-		return t.EnterResourceTime(stub,args)
-	}else if function == "complete_project_milestone" {
-		return t.CompleteProjectMilestone(stub,args)
-	}else if function == "write" {
-		return t.Write(stub,args)
-	}else if function == "pay_amount" {
-		return t.PayAmount(stub,args)
+	} else if function == "resource_time_entry" {
+		return t.EnterResourceTime(stub, args)
+	} else if function == "complete_project_milestone" {
+		return t.CompleteProjectMilestone(stub, args)
+	} else if function == "write" {
+		return t.Write(stub, args)
+	} else if function == "pay_amount" {
+		return t.PayAmount(stub, args)
 	}
 
 	fmt.Println("invoke did not find func: " + function) //error
@@ -215,23 +222,23 @@ func (t *SimpleChaincode) initializeData(stub shim.ChaincodeStubInterface, args 
 		return nil, err
 	}
 
-//initialize user rates for Proj3
+	//initialize user rates for Proj3
 	err = stub.PutState(consultingProjects[2], jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
 
-//initialize initial contract amount
+	//initialize initial contract amount
 
-err = stub.PutState(consultingOrgStr, []byte(initialAmount))
-if err != nil {
-	return nil, err
-}
+	err = stub.PutState(consultingOrgStr, []byte(initialAmount))
+	if err != nil {
+		return nil, err
+	}
 
-err = stub.PutState(consultingOrgStr+"::amount_paid", []byte("0"))
-if err != nil {
-	return nil, err
-}
+	err = stub.PutState(consultingOrgStr+"::amount_paid", []byte("0"))
+	if err != nil {
+		return nil, err
+	}
 
 	return nil, nil
 }
@@ -240,7 +247,7 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 	//       0              1         2           3                  4            5
 	// "ProjectName", "TaskName", "PersonName", "QuantityInHours","ExpenseType","EntryDate"
 	var rate int
-  var hours int
+	var hours int
 
 	if len(args) != 6 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
@@ -267,16 +274,16 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 		return nil, errors.New("5th argument EntryDate must be a non-empty string")
 	}
 
- timeEntry := TimeEntry{}
- timeEntry.ProjectName = args[0]
- timeEntry.TaskName = args[1]
- timeEntry.PersonName = args[2]
- timeEntry.QuantityInHours = args[3]
- timeEntry.DerivedAmount = "0"
- timeEntry.ExpenseType = args[4]
- //timeEntry.EntryDate = time.Now().Format(timeFormat)
- timeEntry.EntryDate = args[5]
-// derive amount
+	timeEntry := TimeEntry{}
+	timeEntry.ProjectName = args[0]
+	timeEntry.TaskName = args[1]
+	timeEntry.PersonName = args[2]
+	timeEntry.QuantityInHours = args[3]
+	timeEntry.DerivedAmount = "0"
+	timeEntry.ExpenseType = args[4]
+	//timeEntry.EntryDate = time.Now().Format(timeFormat)
+	timeEntry.EntryDate = args[5]
+	// derive amount
 
 	projectUserRatesAsBytes, err := stub.GetState(args[0])
 	if err != nil {
@@ -285,62 +292,62 @@ func (t *SimpleChaincode) EnterResourceTime(stub shim.ChaincodeStubInterface, ar
 	projectUserRates := []UserRate{}
 	json.Unmarshal(projectUserRatesAsBytes, &projectUserRates)
 
-	for i := range projectUserRates{
+	for i := range projectUserRates {
 		if strings.ToLower(projectUserRates[i].User) == strings.ToLower(args[2]) {
-			hours,_ = strconv.Atoi(args[3])
-			rate,_ = strconv.Atoi(projectUserRates[i].Rate)
-       timeEntry.DerivedAmount = strconv.Itoa(hours * rate )
+			hours, _ = strconv.Atoi(args[3])
+			rate, _ = strconv.Atoi(projectUserRates[i].Rate)
+			timeEntry.DerivedAmount = strconv.Itoa(hours * rate)
 		}
 	}
 
-//get time entires for user and project
-projectUserTimeEntryAsBytes, err := stub.GetState(args[0]+"::"+args[2])
-if err != nil {
-	return nil, errors.New("Failed to get project user time entry")
-}
+	//get time entires for user and project
+	projectUserTimeEntryAsBytes, err := stub.GetState(args[0] + "::" + args[2])
+	if err != nil {
+		return nil, errors.New("Failed to get project user time entry")
+	}
 
-allProjectTimeEntries := []TimeEntry{}
-json.Unmarshal(projectUserTimeEntryAsBytes, &allProjectTimeEntries)
+	allProjectTimeEntries := []TimeEntry{}
+	json.Unmarshal(projectUserTimeEntryAsBytes, &allProjectTimeEntries)
 
-//add current time entry to exisitng
-allProjectTimeEntries = append(allProjectTimeEntries, timeEntry)
+	//add current time entry to exisitng
+	allProjectTimeEntries = append(allProjectTimeEntries, timeEntry)
 
-//put back all time entries
-jsonAsBytes, _ := json.Marshal(allProjectTimeEntries)
-err = stub.PutState(args[0]+"::"+args[2], jsonAsBytes)
-if err != nil {
-	return nil, err
-}
-//put project and unique users
-
-projectUsersAsBytes, err := stub.GetState(args[0]+projectUsersStr)
-if err != nil {
-	return nil, errors.New("Failed to get project user time entry")
-}
-
-var projectActiveUsers []string
-json.Unmarshal(projectUsersAsBytes, &projectActiveUsers)
-
-//check if user already exits ..if exits then nothing else add to the list
-var userExists bool = false
-
-for i := range projectActiveUsers {
-  if strings.ToLower(projectActiveUsers[i]) == strings.ToLower(args[2]) {
-  	userExists = true
-  }
-}
-
-if !userExists {
-	projectActiveUsers = append(projectActiveUsers, args[2])
-
-	jsonAsBytes, _ = json.Marshal(projectActiveUsers)
-	err = stub.PutState(args[0]+projectUsersStr, jsonAsBytes)
+	//put back all time entries
+	jsonAsBytes, _ := json.Marshal(allProjectTimeEntries)
+	err = stub.PutState(args[0]+"::"+args[2], jsonAsBytes)
 	if err != nil {
 		return nil, err
 	}
-}
+	//put project and unique users
 
-	return nil,nil
+	projectUsersAsBytes, err := stub.GetState(args[0] + projectUsersStr)
+	if err != nil {
+		return nil, errors.New("Failed to get project user time entry")
+	}
+
+	var projectActiveUsers []string
+	json.Unmarshal(projectUsersAsBytes, &projectActiveUsers)
+
+	//check if user already exits ..if exits then nothing else add to the list
+	var userExists bool = false
+
+	for i := range projectActiveUsers {
+		if strings.ToLower(projectActiveUsers[i]) == strings.ToLower(args[2]) {
+			userExists = true
+		}
+	}
+
+	if !userExists {
+		projectActiveUsers = append(projectActiveUsers, args[2])
+
+		jsonAsBytes, _ = json.Marshal(projectActiveUsers)
+		err = stub.PutState(args[0]+projectUsersStr, jsonAsBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }
 
 func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
@@ -370,15 +377,15 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 	}
 
 	projectMilestone := ProjectMilestone{}
-  projectMilestone.ProjectName = args[0]
-  projectMilestone.MilestoneName = args[1]
-  projectMilestone.PersonName = args[2]
-  projectMilestone.Amount = args[3]
+	projectMilestone.ProjectName = args[0]
+	projectMilestone.MilestoneName = args[1]
+	projectMilestone.PersonName = args[2]
+	projectMilestone.Amount = args[3]
 	//projectMilestone.DateActual = time.Now().Format(timeFormat)
 	projectMilestone.DateActual = args[4]
 
 	//get time entires for user and project
-	projectMilestonesAsBytes, err := stub.GetState(args[0]+projectMilestonesStr)
+	projectMilestonesAsBytes, err := stub.GetState(args[0] + projectMilestonesStr)
 	if err != nil {
 		return nil, errors.New("Failed to get project Milestones")
 	}
@@ -396,121 +403,130 @@ func (t *SimpleChaincode) CompleteProjectMilestone(stub shim.ChaincodeStubInterf
 		return nil, err
 	}
 
-	return nil,nil
+	return nil, nil
 }
 
 func (t *SimpleChaincode) GetOrgOverview(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	//    0        1
 	// "GE", "ABCConsulting"
 
-var completedworkamount int64
-var pendingcontractamount int64
-var amountpaid int64
-var balancetobepaid int64
+	var completedworkamount int64
+	var pendingcontractamount int64
+	var amountpaid int64
+	var balancetobepaid int64
 
-orgResult := OrgResult{}
-projectResults := []ProjectResult{}
-projectResult := ProjectResult{}
+	orgResult := OrgResult{}
+	projectResults := []ProjectResult{}
+	projectResult := ProjectResult{}
 
-//get projects
-projectsAsBytes, err := stub.GetState(organizationStr+"::"+consultingOrgStr)
+	//get projects
+	projectsAsBytes, err := stub.GetState(organizationStr + "::" + consultingOrgStr)
+	if err != nil {
+		return nil, err
+	}
+
+	var projects []string
+	json.Unmarshal(projectsAsBytes, &projects)
+
+	for i := range projects {
+		//for each project get time entires and milestones
+
+		//get users for each project
+		projectUsersAsBytes, err := stub.GetState(projects[i] + projectUsersStr)
+		if err != nil {
+			return nil, err
+		}
+
+		var projectUsers []string
+		json.Unmarshal(projectUsersAsBytes, &projectUsers)
+
+		for j := range projectUsers {
+			//for each user get time entries
+
+			timeEntriesAsBytes, err := stub.GetState(projects[i] + "::" + projectUsers[j])
+			if err != nil {
+				return nil, err
+			}
+
+			timeEntries := []TimeEntry{}
+			json.Unmarshal(timeEntriesAsBytes, &timeEntries)
+
+			for x := range timeEntries {
+				//for each time entry add amount and add to list
+				Aval, _ := strconv.ParseInt(timeEntries[x].DerivedAmount, 10, 32)
+				completedworkamount += Aval
+
+				projectResult.Name = timeEntries[x].PersonName + " " + timeEntries[x].QuantityInHours + " Hours Worked "
+				projectResult.Date = timeEntries[x].EntryDate
+				projectResult.DerivedAmount = timeEntries[x].DerivedAmount
+				projectResult.ProjectName = projects[i]
+				projectResult.TaskName = timeEntries[x].TaskName
+				projectResults = append(projectResults, projectResult)
+			} //time entires
+
+		} //users
+
+		//get milestones for each project
+		projectMilestonesAsBytes, err := stub.GetState(projects[i] + projectMilestonesStr)
+		if err != nil {
+			return nil, err
+		}
+
+		projectMilestones := []ProjectMilestone{}
+		json.Unmarshal(projectMilestonesAsBytes, &projectMilestones)
+
+		for y := range projectMilestones {
+			//for each milestone add amount and add to list
+			Aval, _ := strconv.ParseInt(projectMilestones[y].Amount, 10, 32)
+			completedworkamount += Aval
+
+			projectResult.Name = "Milestone " + projectMilestones[y].MilestoneName + " Completed "
+			projectResult.Date = projectMilestones[y].DateActual
+			projectResult.DerivedAmount = projectMilestones[y].Amount
+			projectResult.ProjectName = projects[i]
+			projectResult.TaskName = ""
+			projectResults = append(projectResults, projectResult)
+		} //time entires
+
+	} //projects
+
+	//do calculations comvert int to string ,return result
+	orgResult.ProjectResults = projectResults
+	orgResult.CompletedWorkAmount = strconv.FormatInt(completedworkamount, 10)
+
+	initialAmountAsBytes, err := stub.GetState(consultingOrgStr)
+	if err != nil {
+		return nil, err
+	}
+	initialAmount, _ := strconv.ParseInt(string(initialAmountAsBytes), 10, 32)
+
+	amountPaidAsBytes, err := stub.GetState(consultingOrgStr + "::amount_paid")
+	if err != nil {
+		return nil, err
+	}
+	amountpaid, _ = strconv.ParseInt(string(amountPaidAsBytes), 10, 32)
+
+	pendingcontractamount = initialAmount - completedworkamount
+
+	orgResult.PendingContractAmount = strconv.FormatInt(pendingcontractamount, 10)
+	orgResult.AmountPaid = string(amountPaidAsBytes)
+
+	balancetobepaid = completedworkamount - amountpaid
+	orgResult.BalanceTobePaid = strconv.FormatInt(balancetobepaid, 10)
+
+//append amount paid transactions
+transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
 if err != nil {
-	return nil, err
+	return nil, errors.New("Failed to get the first account")
 }
 
-var projects []string
-json.Unmarshal(projectsAsBytes, &projects)
+amountPaidLog := []AmountTransfer{}
+json.Unmarshal(transfersAsBytes, &amountPaidLog)
 
-for i := range projects {
-	//for each project get time entires and milestones
-
-//get users for each project
-projectUsersAsBytes, err := stub.GetState(projects[i]+projectUsersStr)
-if err != nil {
-	return nil, err
-}
-
-var projectUsers []string
-json.Unmarshal(projectUsersAsBytes, &projectUsers)
-
-for j := range projectUsers {
-//for each user get time entries
-
-timeEntriesAsBytes, err := stub.GetState(projects[i]+"::"+projectUsers[j])
-if err != nil {
-	return nil, err
-}
-
-timeEntries := []TimeEntry{}
-json.Unmarshal(timeEntriesAsBytes, &timeEntries)
-
-for x := range timeEntries {
-	//for each time entry add amount and add to list
-	 Aval, _ := strconv.ParseInt(timeEntries[x].DerivedAmount,10,32)
-	completedworkamount += Aval
-
-	projectResult.Name = timeEntries[x].PersonName +" " + timeEntries[x].QuantityInHours + " Hours Worked "
-	projectResult.Date = timeEntries[x].EntryDate
-	projectResult.DerivedAmount = timeEntries[x].DerivedAmount
-	projectResult.ProjectName = projects[i]
-	projectResult.TaskName = timeEntries[x].TaskName
-  projectResults = append(projectResults,projectResult)
-}//time entires
-
-}//users
-
-//get milestones for each project
-projectMilestonesAsBytes, err := stub.GetState(projects[i]+projectMilestonesStr)
-if err != nil {
-	return nil, err
-}
-
-projectMilestones := []ProjectMilestone{}
-json.Unmarshal(projectMilestonesAsBytes, &projectMilestones)
-
-for y := range projectMilestones {
-	//for each milestone add amount and add to list
-	Aval, _ := strconv.ParseInt(projectMilestones[y].Amount,10,32)
-  completedworkamount += Aval
-
-	projectResult.Name ="Milestone " + projectMilestones[y].MilestoneName + " Completed "
-	projectResult.Date = projectMilestones[y].DateActual
-	projectResult.DerivedAmount = projectMilestones[y].Amount
-	projectResult.ProjectName = projects[i]
-	projectResult.TaskName = ""
-  projectResults = append(projectResults,projectResult)
-}//time entires
-
-}//projects
-
-
-//do calculations comvert int to string ,return result
-orgResult.ProjectResults = projectResults
-orgResult.CompletedWorkAmount = strconv.FormatInt(completedworkamount, 10)
-
-initialAmountAsBytes, err := stub.GetState(consultingOrgStr)
-if err != nil {
-	return nil, err
-}
-initialAmount,_ := strconv.ParseInt(string(initialAmountAsBytes),10,32)
-
-amountPaidAsBytes, err := stub.GetState(consultingOrgStr+"::amount_paid")
-if err != nil {
-	return nil, err
-}
-amountpaid,_ = strconv.ParseInt(string(amountPaidAsBytes),10,32)
-
-pendingcontractamount = initialAmount - completedworkamount
-
-orgResult.PendingContractAmount =strconv.FormatInt(pendingcontractamount, 10)
-orgResult.AmountPaid = string(amountPaidAsBytes)
-
-balancetobepaid = completedworkamount - amountpaid
-orgResult.BalanceTobePaid=strconv.FormatInt(balancetobepaid, 10)
+orgResult.AmountPaidLog = amountPaidLog
 
 	return json.Marshal(orgResult)
 }
-
 
 func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
@@ -528,7 +544,7 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 		return nil, errors.New("2nd argument value must be a non-empty string")
 	}
 
-	err = stub.PutState(args[0], []byte(args[1]))  //write the variable into the chaincode state
+	err = stub.PutState(args[0], []byte(args[1])) //write the variable into the chaincode state
 	if err != nil {
 		return nil, err
 	}
@@ -537,13 +553,13 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 
 func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
-	//     0           1         2
-	// "GE", "ABCConsulting", "1000"
+	//     0           1         2       3
+	// "GE", "ABCConsulting", "1000" , "Date"
 
 	var err error
-	fmt.Println("running write()")
+	fmt.Println("running PayAmount()")
 
-	if len(args) < 3 {
+	if len(args) < 4 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 
@@ -556,8 +572,12 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 	if len(args[2]) <= 0 {
 		return nil, errors.New("3rd argument amount must be a non-empty string")
 	}
+	if len(args[3]) <= 0 {
+		return nil, errors.New("4th argument Date must be a non-empty string")
+	}
 
-	accountAsBytes, err := stub.GetState(args[1]+"::amount_paid")
+
+	accountAsBytes, err := stub.GetState(args[1] + "::amount_paid")
 	if err != nil {
 		return nil, errors.New("Failed to get the first account")
 	}
@@ -567,7 +587,28 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 
 	Aval += newAval
 
-	err = stub.PutState(args[1]+"::amount_paid", []byte(strconv.Itoa(Aval)))  //write the variable into the chaincode state
+	err = stub.PutState(args[1]+"::amount_paid", []byte(strconv.Itoa(Aval))) //write the variable into the chaincode state
+	if err != nil {
+		return nil, err
+	}
+
+//log each entry
+	transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
+	if err != nil {
+		return nil, errors.New("Failed to get the first account")
+	}
+
+	amountPaidLog := []AmountTransfer{}
+	json.Unmarshal(transfersAsBytes, &amountPaidLog)
+
+amountpaid := AmountTransfer{}
+amountpaid.AmountPaid = args[2]
+amountpaid.Date = args[3]
+amountPaidLog = append(amountPaidLog, amountpaid)
+
+jsonAsBytes, _ := json.Marshal(amountPaidLog)
+
+	err = stub.PutState(args[1]+"::amount_paid_log", jsonAsBytes) //write the variable into the chaincode state
 	if err != nil {
 		return nil, err
 	}
