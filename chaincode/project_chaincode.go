@@ -55,11 +55,11 @@ type UserRate struct {
 }
 
 type OrgResult struct {
-	CompletedWorkAmount   string          `json:"completedworkamount"`
-	PendingContractAmount string          `json:"pendingcontractamount"`
-	AmountPaid            string          `json:"amountpaid"`
-	BalanceTobePaid       string          `json:"balancetobepaid"`
-	ProjectResults        []ProjectResult `json:"projectresults"`
+	CompletedWorkAmount   string           `json:"completedworkamount"`
+	PendingContractAmount string           `json:"pendingcontractamount"`
+	AmountPaid            string           `json:"amountpaid"`
+	BalanceTobePaid       string           `json:"balancetobepaid"`
+	ProjectResults        []ProjectResult  `json:"projectresults"`
 	AmountPaidLog         []AmountTransfer `json:"amounttransactions"`
 }
 
@@ -72,8 +72,8 @@ type ProjectResult struct {
 }
 
 type AmountTransfer struct {
-	AmountPaid          string `json:"amountpaid"`
-	Date                string `json:"date"`
+	AmountPaid string `json:"amountpaid"`
+	Date       string `json:"date"`
 }
 
 // ============================================================================================================================
@@ -514,16 +514,16 @@ func (t *SimpleChaincode) GetOrgOverview(stub shim.ChaincodeStubInterface, args 
 	balancetobepaid = completedworkamount - amountpaid
 	orgResult.BalanceTobePaid = strconv.FormatInt(balancetobepaid, 10)
 
-//append amount paid transactions
-transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
-if err != nil {
-	return nil, errors.New("Failed to get the first account")
-}
+	//append amount paid transactions
+	transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
+	if err != nil {
+		return nil, errors.New("Failed to get the first account")
+	}
 
-amountPaidLog := []AmountTransfer{}
-json.Unmarshal(transfersAsBytes, &amountPaidLog)
+	amountPaidLog := []AmountTransfer{}
+	json.Unmarshal(transfersAsBytes, &amountPaidLog)
 
-orgResult.AmountPaidLog = amountPaidLog
+	orgResult.AmountPaidLog = amountPaidLog
 
 	return json.Marshal(orgResult)
 }
@@ -576,7 +576,6 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 		return nil, errors.New("4th argument Date must be a non-empty string")
 	}
 
-
 	accountAsBytes, err := stub.GetState(args[1] + "::amount_paid")
 	if err != nil {
 		return nil, errors.New("Failed to get the first account")
@@ -592,7 +591,7 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 		return nil, err
 	}
 
-//log each entry
+	//log each entry
 	transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
 	if err != nil {
 		return nil, errors.New("Failed to get the first account")
@@ -601,12 +600,12 @@ func (t *SimpleChaincode) PayAmount(stub shim.ChaincodeStubInterface, args []str
 	amountPaidLog := []AmountTransfer{}
 	json.Unmarshal(transfersAsBytes, &amountPaidLog)
 
-amountpaid := AmountTransfer{}
-amountpaid.AmountPaid = args[2]
-amountpaid.Date = args[3]
-amountPaidLog = append(amountPaidLog, amountpaid)
+	amountpaid := AmountTransfer{}
+	amountpaid.AmountPaid = args[2]
+	amountpaid.Date = args[3]
+	amountPaidLog = append(amountPaidLog, amountpaid)
 
-jsonAsBytes, _ := json.Marshal(amountPaidLog)
+	jsonAsBytes, _ := json.Marshal(amountPaidLog)
 
 	err = stub.PutState(args[1]+"::amount_paid_log", jsonAsBytes) //write the variable into the chaincode state
 	if err != nil {
