@@ -419,6 +419,8 @@ func (t *SimpleChaincode) GetOrgOverview(stub shim.ChaincodeStubInterface, args 
 	projectResults := []ProjectResult{}
 	projectResult := ProjectResult{}
 
+fmt.Println("- start GetOrgOverview")
+
 	//get projects
 	projectsAsBytes, err := stub.GetState(organizationStr + "::" + consultingOrgStr)
 	if err != nil {
@@ -515,7 +517,10 @@ func (t *SimpleChaincode) GetOrgOverview(stub shim.ChaincodeStubInterface, args 
 	orgResult.BalanceTobePaid = strconv.FormatInt(balancetobepaid, 10)
 
 	//append amount paid transactions
-	transfersAsBytes, err := stub.GetState(args[1] + "::amount_paid_log")
+
+	fmt.Println("- adding amount paid log")
+
+	transfersAsBytes, err := stub.GetState(consultingOrgStr + "::amount_paid_log")
 	if err != nil {
 		return nil, errors.New("Failed to get the first account")
 	}
